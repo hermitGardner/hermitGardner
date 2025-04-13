@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>U.S. Tariff Impact Calculator</title>
+    <title>Customizable Tariff Impact Calculator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,6 +18,8 @@
         input, button, select {
             padding: 8px;
             box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
         button {
             background: #007BFF;
@@ -26,6 +28,10 @@
             cursor: pointer;
             margin-top: 10px;
             width: 100%;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #0069d9;
         }
         .slider-container {
             margin: 15px 0;
@@ -34,16 +40,22 @@
             display: flex;
             justify-content: space-between;
             margin-bottom: 5px;
+            align-items: center;
         }
         .input-combo {
             display: flex;
             gap: 10px;
+            align-items: center;
         }
         .input-combo input[type="range"] {
             flex: 1;
         }
         .input-combo input[type="number"] {
             width: 100px;
+        }
+        .rate-input {
+            width: 60px;
+            margin-left: 10px;
         }
         #result {
             margin-top: 20px;
@@ -56,233 +68,329 @@
             color: #d9534f;
         }
         .category {
-            margin-bottom: 10px;
-            padding-bottom: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
             border-bottom: 1px solid #eee;
         }
-        #loading, #api-status {
-            display: none;
+        .error {
+            color: #d9534f;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .remaining-funds {
+            font-weight: bold;
+            margin-top: 10px;
             padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-        }
-        #loading {
             background: #e7f5ff;
+            border-radius: 4px;
         }
-        .api-success {
-            background: #d4edda;
+        .positive {
+            color: #28a745;
         }
-        .api-warning {
-            background: #fff3cd;
+        .negative {
+            color: #dc3545;
         }
-        .api-error {
-            background: #f8d7da;
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #007BFF;
+            padding-bottom: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>U.S. Tariff Impact Calculator</h1>
-    <p>Estimate how tariffs affect your spending based on real tariff rates.</p>
+    <h1>Customizable Tariff Impact Calculator</h1>
+    <p>Enter your income, set custom tariff rates, and adjust spending to see the impact.</p>
     
     <div class="input-group">
         <label for="income">Annual Household Income ($):</label>
-        <input type="number" id="income" placeholder="e.g., 50000">
+        <input type="number" id="income" placeholder="e.g., 50000" min="0" step="1000">
+        <div id="income-error" class="error"></div>
     </div>
 
-    <h3>Adjust Annual Spending:</h3>
+    <h3>Customize Tariff Rates and Spending:</h3>
     
     <!-- Electronics -->
     <div class="category">
         <div class="slider-label">
-            <span>Electronics (Tariff: <span id="electronics-rate" class="tariff-rate">—%</span>)</span>
+            <span>Electronics: 
+                <input type="number" id="electronics-rate-input" class="rate-input" min="0" max="100" value="15" step="0.1">%
+            </span>
+            <span>$<span id="electronics-value">1000</span>/year</span>
         </div>
         <div class="input-combo">
             <input type="range" id="electronics-slider" min="0" max="20000" value="1000" step="100" oninput="updateSlider('electronics')">
-            <input type="number" id="electronics-input" value="1000" min="0" max="100000" oninput="updateInput('electronics')">
+            <input type="number" id="electronics-input" value="1000" min="0" step="100" oninput="updateInput('electronics')">
         </div>
+        <div id="electronics-error" class="error"></div>
     </div>
 
     <!-- Clothing -->
     <div class="category">
         <div class="slider-label">
-            <span>Clothing (Tariff: <span id="clothing-rate" class="tariff-rate">—%</span>)</span>
+            <span>Clothing: 
+                <input type="number" id="clothing-rate-input" class="rate-input" min="0" max="100" value="12" step="0.1">%
+            </span>
+            <span>$<span id="clothing-value">500</span>/year</span>
         </div>
         <div class="input-combo">
             <input type="range" id="clothing-slider" min="0" max="10000" value="500" step="50" oninput="updateSlider('clothing')">
-            <input type="number" id="clothing-input" value="500" min="0" max="50000" oninput="updateInput('clothing')">
+            <input type="number" id="clothing-input" value="500" min="0" step="50" oninput="updateInput('clothing')">
         </div>
+        <div id="clothing-error" class="error"></div>
     </div>
 
     <!-- Cars/Auto Parts -->
     <div class="category">
         <div class="slider-label">
-            <span>Cars/Auto Parts (Tariff: <span id="cars-rate" class="tariff-rate">—%</span>)</span>
+            <span>Cars/Auto Parts: 
+                <input type="number" id="cars-rate-input" class="rate-input" min="0" max="100" value="10" step="0.1">%
+            </span>
+            <span>$<span id="cars-value">2000</span>/year</span>
         </div>
         <div class="input-combo">
             <input type="range" id="cars-slider" min="0" max="30000" value="2000" step="100" oninput="updateSlider('cars')">
-            <input type="number" id="cars-input" value="2000" min="0" max="100000" oninput="updateInput('cars')">
+            <input type="number" id="cars-input" value="2000" min="0" step="100" oninput="updateInput('cars')">
         </div>
+        <div id="cars-error" class="error"></div>
     </div>
 
     <!-- Food -->
     <div class="category">
         <div class="slider-label">
-            <span>Food (Tariff: <span id="food-rate" class="tariff-rate">—%</span>)</span>
+            <span>Food: 
+                <input type="number" id="food-rate-input" class="rate-input" min="0" max="100" value="5" step="0.1">%
+            </span>
+            <span>$<span id="food-value">3000</span>/year</span>
         </div>
         <div class="input-combo">
             <input type="range" id="food-slider" min="0" max="20000" value="3000" step="100" oninput="updateSlider('food')">
-            <input type="number" id="food-input" value="3000" min="0" max="50000" oninput="updateInput('food')">
+            <input type="number" id="food-input" value="3000" min="0" step="100" oninput="updateInput('food')">
         </div>
+        <div id="food-error" class="error"></div>
     </div>
 
     <!-- Energy (Gas, Utilities) -->
     <div class="category">
         <div class="slider-label">
-            <span>Energy (Gas, Utilities) (Tariff: <span id="energy-rate" class="tariff-rate">—%</span>)</span>
+            <span>Energy (Gas, Utilities): 
+                <input type="number" id="energy-rate-input" class="rate-input" min="0" max="100" value="3" step="0.1">%
+            </span>
+            <span>$<span id="energy-value">1500</span>/year</span>
         </div>
         <div class="input-combo">
             <input type="range" id="energy-slider" min="0" max="10000" value="1500" step="50" oninput="updateSlider('energy')">
-            <input type="number" id="energy-input" value="1500" min="0" max="50000" oninput="updateInput('energy')">
+            <input type="number" id="energy-input" value="1500" min="0" step="50" oninput="updateInput('energy')">
         </div>
+        <div id="energy-error" class="error"></div>
     </div>
 
+    <div id="remaining-funds" class="remaining-funds"></div>
     <button onclick="calculateTariffImpact()">Calculate My Tariff Costs</button>
-    <div id="loading">Loading tariff data...</div>
-    <div id="api-status"></div>
+    
     <div id="result"></div>
 
     <script>
-        // Global variable to store tariff rates
-        let tariffRates = {};
-        let loadingEl, statusEl, resultEl;
-
+        // Global variables
+        let annualIncome = 0;
+        const categories = ["electronics", "clothing", "cars", "food", "energy"];
+        
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            // Get DOM elements
-            loadingEl = document.getElementById('loading');
-            statusEl = document.getElementById('api-status');
-            resultEl = document.getElementById('result');
-            
-            // Initialize calculator
-            fetchTariffRates();
-        });
-
-        // Fetch tariff rates from API
-        async function fetchTariffRates() {
-            if (!loadingEl || !statusEl) return;
-            
-            loadingEl.style.display = 'block';
-            statusEl.style.display = 'none';
-            
-            try {
-                // Try to fetch rates (using mock data here - replace with real API)
-                const rates = await tryFetchRates();
-                tariffRates = rates;
-                
-                statusEl.textContent = 'Using live tariff data';
-                statusEl.className = 'api-success';
-                updateRateDisplays();
-                
-            } catch (error) {
-                console.error("Failed to load rates:", error);
-                statusEl.textContent = 'Using default tariff rates (API unavailable)';
-                statusEl.className = 'api-warning';
-                
-                // Fallback rates
-                tariffRates = {
-                    electronics: 15,
-                    clothing: 12,
-                    cars: 10,
-                    food: 5,
-                    energy: 3
-                };
-                updateRateDisplays();
-                
-            } finally {
-                loadingEl.style.display = 'none';
-                statusEl.style.display = 'block';
-            }
-        }
-
-        // Try to fetch rates from different sources
-        async function tryFetchRates() {
-            // This is where you would call real APIs
-            // For now, we'll use mock data
-            return {
-                electronics: 15,
-                clothing: 12,
-                cars: 10,
-                food: 5,
-                energy: 3
-            };
-        }
-
-        // Update displayed tariff rates
-        function updateRateDisplays() {
-            const categories = ['electronics', 'clothing', 'cars', 'food', 'energy'];
-            categories.forEach(cat => {
-                const el = document.getElementById(`${cat}-rate`);
-                if (el && tariffRates[cat] !== undefined) {
-                    el.textContent = `${tariffRates[cat]}%`;
-                }
+            // Add event listeners for rate inputs
+            categories.forEach(category => {
+                document.getElementById(`${category}-rate-input`).addEventListener('input', function() {
+                    validateRateInput(this);
+                    updateRemainingFunds();
+                });
             });
+            
+            // Add event listener for income input
+            document.getElementById('income').addEventListener('input', function() {
+                annualIncome = parseFloat(this.value) || 0;
+                validateIncome();
+                updateRemainingFunds();
+                updateAllSlidersMax();
+            });
+            
+            // Initialize max values based on default income
+            updateAllSlidersMax();
+            updateRemainingFunds();
+        });
+        
+        // Update slider max values based on income
+        function updateAllSlidersMax() {
+            const maxSpending = annualIncome * 0.5; // Don't allow more than 50% of income on any category
+            
+            document.getElementById('electronics-slider').max = maxSpending;
+            document.getElementById('electronics-input').max = maxSpending;
+            
+            document.getElementById('clothing-slider').max = maxSpending;
+            document.getElementById('clothing-input').max = maxSpending;
+            
+            document.getElementById('cars-slider').max = maxSpending;
+            document.getElementById('cars-input').max = maxSpending;
+            
+            document.getElementById('food-slider').max = maxSpending;
+            document.getElementById('food-input').max = maxSpending;
+            
+            document.getElementById('energy-slider').max = maxSpending;
+            document.getElementById('energy-input').max = maxSpending;
         }
-
+        
+        // Validate income input
+        function validateIncome() {
+            const incomeInput = document.getElementById('income');
+            const errorEl = document.getElementById('income-error');
+            
+            if (incomeInput.value && parseFloat(incomeInput.value) <= 0) {
+                errorEl.textContent = "Income must be greater than 0";
+                return false;
+            }
+            
+            errorEl.textContent = "";
+            return true;
+        }
+        
+        // Validate rate input
+        function validateRateInput(inputElement) {
+            const value = parseFloat(inputElement.value);
+            const errorEl = document.getElementById(`${inputElement.id.replace('-rate-input', '-error')}`);
+            
+            if (isNaN(value) || value < 0 || value > 100) {
+                errorEl.textContent = "Rate must be between 0% and 100%";
+                return false;
+            }
+            
+            errorEl.textContent = "";
+            return true;
+        }
+        
         // Sync sliders and input fields
         function updateSlider(category) {
             const slider = document.getElementById(`${category}-slider`);
             const input = document.getElementById(`${category}-input`);
-            if (slider && input) {
-                input.value = slider.value;
+            const valueDisplay = document.getElementById(`${category}-value`);
+            
+            if (slider && input && valueDisplay) {
+                const value = slider.value;
+                input.value = value;
+                valueDisplay.textContent = Number(value).toLocaleString();
+                updateRemainingFunds();
             }
         }
-
+        
         function updateInput(category) {
             const slider = document.getElementById(`${category}-slider`);
             const input = document.getElementById(`${category}-input`);
-            if (slider && input) {
-                slider.value = input.value;
+            const valueDisplay = document.getElementById(`${category}-value`);
+            
+            if (slider && input && valueDisplay) {
+                let value = parseFloat(input.value) || 0;
+                
+                // Enforce max based on income
+                if (annualIncome > 0 && value > annualIncome * 0.5) {
+                    value = annualIncome * 0.5;
+                    input.value = value;
+                }
+                
+                slider.value = value;
+                valueDisplay.textContent = Number(value).toLocaleString();
+                updateRemainingFunds();
             }
         }
-
-        // Main calculation function
-        function calculateTariffImpact() {
-            const income = parseFloat(document.getElementById("income").value);
-            if (!income || income <= 0) {
-                alert("Please enter a valid income.");
-                return;
-            }
-
-            // Get spending values
-            const categories = ["electronics", "clothing", "cars", "food", "energy"];
+        
+        // Calculate remaining funds
+        function updateRemainingFunds() {
+            if (annualIncome <= 0) return;
+            
             let totalSpending = 0;
-            let totalTariffCost = 0;
-
-            let breakdown = "";
             categories.forEach(category => {
                 const spend = parseFloat(document.getElementById(`${category}-input`).value) || 0;
-                const rate = tariffRates[category] || 0;
+                totalSpending += spend;
+            });
+            
+            const remaining = annualIncome - totalSpending;
+            const remainingEl = document.getElementById('remaining-funds');
+            
+            if (remainingEl) {
+                remainingEl.innerHTML = remaining >= 0 ?
+                    `<span class="positive">Remaining Funds: $${remaining.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>` :
+                    `<span class="negative">Over Budget: $${Math.abs(remaining).toLocaleString(undefined, {maximumFractionDigits: 2})}</span>`;
+            }
+        }
+        
+        // Main calculation function
+        function calculateTariffImpact() {
+            // Validate inputs
+            if (!validateIncome()) return;
+            
+            annualIncome = parseFloat(document.getElementById("income").value) || 0;
+            if (annualIncome <= 0) {
+                alert("Please enter a valid income greater than 0");
+                return;
+            }
+            
+            // Get spending values and calculate costs
+            let totalSpending = 0;
+            let totalTariffCost = 0;
+            let breakdown = "";
+            
+            categories.forEach(category => {
+                const spend = parseFloat(document.getElementById(`${category}-input`).value) || 0;
+                const rate = parseFloat(document.getElementById(`${category}-rate-input`).value) || 0;
                 const cost = spend * (rate / 100);
+                
                 totalSpending += spend;
                 totalTariffCost += cost;
-                breakdown += `<li>${category.charAt(0).toUpperCase() + category.slice(1)}: $${cost.toFixed(2)} (${rate}% of $${spend})</li>`;
+                
+                breakdown += `
+                    <tr>
+                        <td>${category.charAt(0).toUpperCase() + category.slice(1)}</td>
+                        <td>${rate}%</td>
+                        <td>$${spend.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                        <td>$${cost.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                    </tr>
+                `;
             });
-
-            const percentOfIncome = (totalTariffCost / income) * 100;
-
+            
+            // Validate spending doesn't exceed income
+            if (totalSpending > annualIncome) {
+                alert("Warning: Your total spending exceeds your annual income!");
+            }
+            
+            const percentOfIncome = (totalTariffCost / annualIncome) * 100;
+            const remaining = annualIncome - totalSpending;
+            
             // Display result
+            const resultEl = document.getElementById("result");
             if (resultEl) {
                 resultEl.innerHTML = `
-                    <h3>Your Tariff Impact</h3>
-                    <p><strong>Annual Income:</strong> $${income.toLocaleString()}</p>
-                    <p><strong>Total Spending on Selected Categories:</strong> $${totalSpending.toLocaleString()}</p>
+                    <h3>Your Custom Tariff Impact Report</h3>
+                    <p><strong>Annual Income:</strong> $${annualIncome.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                    <p><strong>Total Spending on Selected Categories:</strong> $${totalSpending.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
                     <p><strong>Estimated Annual Tariff Costs:</strong> $${totalTariffCost.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
                     <p><strong>% of Income Spent on Tariffs:</strong> ${percentOfIncome.toFixed(1)}%</p>
+                    <p class="${remaining >= 0 ? 'positive' : 'negative'}">
+                        <strong>${remaining >= 0 ? 'Remaining Funds:' : 'Over Budget:'}</strong> 
+                        $${Math.abs(remaining).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                    </p>
                     
-                    <h4>Breakdown:</h4>
-                    <ul>${breakdown}</ul>
+                    <h4>Detailed Breakdown:</h4>
+                    <table style="width:100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background-color: #f2f2f2;">
+                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Category</th>
+                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Tariff Rate</th>
+                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Spending</th>
+                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Tariff Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${breakdown}
+                        </tbody>
+                    </table>
                     
-                    <p><small>Note: Calculations update each time you press "Calculate".</small></p>
+                    <p><small>Note: Calculations are based on your custom inputs.</small></p>
                 `;
             }
         }
