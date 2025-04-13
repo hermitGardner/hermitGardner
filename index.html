@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customizable Tariff Impact Calculator</title>
+    <title>Smart Auto-Default Tariff Calculator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,6 +11,7 @@
             margin: 0 auto;
             padding: 20px;
             line-height: 1.6;
+            color: #333;
         }
         .input-group {
             margin-bottom: 15px;
@@ -29,6 +30,8 @@
             margin-top: 10px;
             width: 100%;
             font-weight: bold;
+            padding: 12px;
+            transition: background 0.3s;
         }
         button:hover {
             background: #0069d9;
@@ -62,6 +65,7 @@
             padding: 20px;
             background: #f8f9fa;
             border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .tariff-rate {
             font-weight: bold;
@@ -79,32 +83,60 @@
         }
         .remaining-funds {
             font-weight: bold;
-            margin-top: 10px;
-            padding: 10px;
-            background: #e7f5ff;
+            margin: 15px 0;
+            padding: 12px;
             border-radius: 4px;
+            text-align: center;
         }
         .positive {
             color: #28a745;
+            background-color: #e8f5e9;
         }
         .negative {
             color: #dc3545;
+            background-color: #ffebee;
         }
         h1 {
             color: #2c3e50;
             border-bottom: 2px solid #007BFF;
             padding-bottom: 10px;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .default-btn {
+            background: #6c757d;
+        }
+        .default-btn:hover {
+            background: #5a6268;
+        }
+        .auto-set-notice {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 5px;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
-    <h1>Customizable Tariff Impact Calculator</h1>
-    <p>Enter your income, set custom tariff rates, and adjust spending to see the impact.</p>
+    <h1>Smart Auto-Default Tariff Calculator</h1>
+    <p>Enter your income to automatically set realistic spending defaults based on average US household budgets.</p>
     
     <div class="input-group">
         <label for="income">Annual Household Income ($):</label>
         <input type="number" id="income" placeholder="e.g., 50000" min="0" step="1000">
         <div id="income-error" class="error"></div>
+        <div id="auto-set-notice" class="auto-set-notice" style="display: none;">Default spending levels set automatically</div>
     </div>
 
     <h3>Customize Tariff Rates and Spending:</h3>
@@ -115,11 +147,11 @@
             <span>Electronics: 
                 <input type="number" id="electronics-rate-input" class="rate-input" min="0" max="100" value="15" step="0.1">%
             </span>
-            <span>$<span id="electronics-value">1000</span>/year</span>
+            <span>$<span id="electronics-value">0</span>/year</span>
         </div>
         <div class="input-combo">
-            <input type="range" id="electronics-slider" min="0" max="20000" value="1000" step="100" oninput="updateSlider('electronics')">
-            <input type="number" id="electronics-input" value="1000" min="0" step="100" oninput="updateInput('electronics')">
+            <input type="range" id="electronics-slider" min="0" max="20000" value="0" step="100" oninput="updateSlider('electronics')">
+            <input type="number" id="electronics-input" value="0" min="0" step="100" oninput="updateInput('electronics')">
         </div>
         <div id="electronics-error" class="error"></div>
     </div>
@@ -130,11 +162,11 @@
             <span>Clothing: 
                 <input type="number" id="clothing-rate-input" class="rate-input" min="0" max="100" value="12" step="0.1">%
             </span>
-            <span>$<span id="clothing-value">500</span>/year</span>
+            <span>$<span id="clothing-value">0</span>/year</span>
         </div>
         <div class="input-combo">
-            <input type="range" id="clothing-slider" min="0" max="10000" value="500" step="50" oninput="updateSlider('clothing')">
-            <input type="number" id="clothing-input" value="500" min="0" step="50" oninput="updateInput('clothing')">
+            <input type="range" id="clothing-slider" min="0" max="10000" value="0" step="50" oninput="updateSlider('clothing')">
+            <input type="number" id="clothing-input" value="0" min="0" step="50" oninput="updateInput('clothing')">
         </div>
         <div id="clothing-error" class="error"></div>
     </div>
@@ -145,11 +177,11 @@
             <span>Cars/Auto Parts: 
                 <input type="number" id="cars-rate-input" class="rate-input" min="0" max="100" value="10" step="0.1">%
             </span>
-            <span>$<span id="cars-value">2000</span>/year</span>
+            <span>$<span id="cars-value">0</span>/year</span>
         </div>
         <div class="input-combo">
-            <input type="range" id="cars-slider" min="0" max="30000" value="2000" step="100" oninput="updateSlider('cars')">
-            <input type="number" id="cars-input" value="2000" min="0" step="100" oninput="updateInput('cars')">
+            <input type="range" id="cars-slider" min="0" max="30000" value="0" step="100" oninput="updateSlider('cars')">
+            <input type="number" id="cars-input" value="0" min="0" step="100" oninput="updateInput('cars')">
         </div>
         <div id="cars-error" class="error"></div>
     </div>
@@ -160,11 +192,11 @@
             <span>Food: 
                 <input type="number" id="food-rate-input" class="rate-input" min="0" max="100" value="5" step="0.1">%
             </span>
-            <span>$<span id="food-value">3000</span>/year</span>
+            <span>$<span id="food-value">0</span>/year</span>
         </div>
         <div class="input-combo">
-            <input type="range" id="food-slider" min="0" max="20000" value="3000" step="100" oninput="updateSlider('food')">
-            <input type="number" id="food-input" value="3000" min="0" step="100" oninput="updateInput('food')">
+            <input type="range" id="food-slider" min="0" max="20000" value="0" step="100" oninput="updateSlider('food')">
+            <input type="number" id="food-input" value="0" min="0" step="100" oninput="updateInput('food')">
         </div>
         <div id="food-error" class="error"></div>
     </div>
@@ -175,27 +207,52 @@
             <span>Energy (Gas, Utilities): 
                 <input type="number" id="energy-rate-input" class="rate-input" min="0" max="100" value="3" step="0.1">%
             </span>
-            <span>$<span id="energy-value">1500</span>/year</span>
+            <span>$<span id="energy-value">0</span>/year</span>
         </div>
         <div class="input-combo">
-            <input type="range" id="energy-slider" min="0" max="10000" value="1500" step="50" oninput="updateSlider('energy')">
-            <input type="number" id="energy-input" value="1500" min="0" step="50" oninput="updateInput('energy')">
+            <input type="range" id="energy-slider" min="0" max="10000" value="0" step="50" oninput="updateSlider('energy')">
+            <input type="number" id="energy-input" value="0" min="0" step="50" oninput="updateInput('energy')">
         </div>
         <div id="energy-error" class="error"></div>
     </div>
 
     <div id="remaining-funds" class="remaining-funds"></div>
     <button onclick="calculateTariffImpact()">Calculate My Tariff Costs</button>
+    <button class="default-btn" onclick="setAllDefaultSpending()">Reset All to Defaults</button>
     
     <div id="result"></div>
 
     <script>
+        // Average spending percentages based on US household budgets (BLS 2022 data)
+        const DEFAULT_SPENDING_PERCENTAGES = {
+            electronics: 0.018,  // 1.8% of income
+            clothing: 0.025,     // 2.5% of income
+            cars: 0.095,         // 9.5% of income (auto payments, maintenance, etc.)
+            food: 0.105,         // 10.5% of income
+            energy: 0.045        // 4.5% of income (gas + utilities)
+        };
+
+        // Default tariff rates (can be customized)
+        const DEFAULT_TARIFF_RATES = {
+            electronics: 15,
+            clothing: 12,
+            cars: 10,
+            food: 5,
+            energy: 3
+        };
+
         // Global variables
         let annualIncome = 0;
+        let autoSetDefaults = false;
         const categories = ["electronics", "clothing", "cars", "food", "energy"];
         
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
+            // Set default tariff rates
+            categories.forEach(category => {
+                document.getElementById(`${category}-rate-input`).value = DEFAULT_TARIFF_RATES[category];
+            });
+            
             // Add event listeners for rate inputs
             categories.forEach(category => {
                 document.getElementById(`${category}-rate-input`).addEventListener('input', function() {
@@ -204,18 +261,48 @@
                 });
             });
             
-            // Add event listener for income input
-            document.getElementById('income').addEventListener('input', function() {
-                annualIncome = parseFloat(this.value) || 0;
-                validateIncome();
-                updateRemainingFunds();
-                updateAllSlidersMax();
+            // Add event listener for income input with debounce
+            const incomeInput = document.getElementById('income');
+            let incomeTimeout;
+            incomeInput.addEventListener('input', function() {
+                clearTimeout(incomeTimeout);
+                incomeTimeout = setTimeout(() => {
+                    annualIncome = parseFloat(this.value) || 0;
+                    if (validateIncome() && annualIncome > 0) {
+                        // Auto-set defaults on first valid income entry
+                        if (!autoSetDefaults) {
+                            setAllDefaultSpending();
+                            autoSetDefaults = true;
+                            document.getElementById('auto-set-notice').style.display = 'block';
+                        }
+                        updateRemainingFunds();
+                        updateAllSlidersMax();
+                    }
+                }, 800); // 0.8 second delay after typing stops
             });
             
             // Initialize max values based on default income
             updateAllSlidersMax();
             updateRemainingFunds();
         });
+        
+        // Set default spending for all categories
+        function setAllDefaultSpending() {
+            if (!validateIncome()) return;
+            
+            categories.forEach(category => {
+                const income = parseFloat(document.getElementById('income').value);
+                if (!income || income <= 0) return;
+                
+                const defaultAmount = Math.round(income * DEFAULT_SPENDING_PERCENTAGES[category]);
+                document.getElementById(`${category}-slider`).value = defaultAmount;
+                document.getElementById(`${category}-input`).value = defaultAmount;
+                document.getElementById(`${category}-value`).textContent = defaultAmount.toLocaleString();
+            });
+            
+            updateRemainingFunds();
+            document.getElementById('auto-set-notice').style.display = 'block';
+        }
         
         // Update slider max values based on income
         function updateAllSlidersMax() {
@@ -256,7 +343,12 @@
             const value = parseFloat(inputElement.value);
             const errorEl = document.getElementById(`${inputElement.id.replace('-rate-input', '-error')}`);
             
-            if (isNaN(value) || value < 0 || value > 100) {
+            if (isNaN(value)) {
+                errorEl.textContent = "Please enter a valid number";
+                return false;
+            }
+            
+            if (value < 0 || value > 100) {
                 errorEl.textContent = "Rate must be between 0% and 100%";
                 return false;
             }
@@ -376,13 +468,13 @@
                     </p>
                     
                     <h4>Detailed Breakdown:</h4>
-                    <table style="width:100%; border-collapse: collapse;">
+                    <table>
                         <thead>
-                            <tr style="background-color: #f2f2f2;">
-                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Category</th>
-                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Tariff Rate</th>
-                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Spending</th>
-                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Tariff Cost</th>
+                            <tr>
+                                <th>Category</th>
+                                <th>Tariff Rate</th>
+                                <th>Spending</th>
+                                <th>Tariff Cost</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -390,7 +482,7 @@
                         </tbody>
                     </table>
                     
-                    <p><small>Note: Calculations are based on your custom inputs.</small></p>
+                    <p><small>Note: Default spending levels based on average US household budgets.</small></p>
                 `;
             }
         }
