@@ -3,56 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>U.S. Tariff Impact Calculator (Real API Data)</title>
+    <title>U.S. Tariff Impact Calculator (Real Data)</title>
     <style>
-        /* ... (keep your existing styles) ... */
-        #api-status {
-            margin: 10px 0;
-            padding: 10px;
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        input, button, select {
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .slider-container {
+            margin: 15px 0;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        .input-combo {
+            display: flex;
+            gap: 10px;
+        }
+        .input-combo input[type="range"] {
+            flex: 1;
+        }
+        .input-combo input[type="number"] {
+            width: 100px;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
             border-radius: 5px;
+        }
+        .tariff-rate {
+            font-weight: bold;
+            color: #d9534f;
+        }
+        .category {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        #loading {
             display: none;
-        }
-        .api-success {
-            background: #d4edda;
-            color: #155724;
-        }
-        .api-warning {
-            background: #fff3cd;
-            color: #856404;
-        }
-        .api-error {
-            background: #f8d7da;
-            color: #721c24;
+            color: #007BFF;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <!-- ... (keep your existing HTML) ... -->
-    <div id="api-status"></div>
-    <!-- ... (rest of your HTML) ... -->
+    <h1>U.S. Tariff Impact Calculator (Real API Data)</h1>
+    <p>Estimate how tariffs affect your spending based on real tariff rates.</p>
+    
+    <div class="input-group">
+        <label for="income">Annual Household Income ($):</label>
+        <input type="number" id="income" placeholder="e.g., 50000">
+    </div>
+
+    <h3>Adjust Annual Spending:</h3>
+    
+    <!-- Electronics -->
+    <div class="category">
+        <div class="slider-label">
+            <span>Electronics (Tariff: <span id="electronics-rate" class="tariff-rate">—%</span>)</span>
+        </div>
+        <div class="input-combo">
+            <input type="range" id="electronics-slider" min="0" max="20000" value="1000" step="100" oninput="updateSlider('electronics')">
+            <input type="number" id="electronics-input" value="1000" min="0" max="100000" oninput="updateInput('electronics')">
+        </div>
+    </div>
+
+    <!-- Clothing -->
+    <div class="category">
+        <div class="slider-label">
+            <span>Clothing (Tariff: <span id="clothing-rate" class="tariff-rate">—%</span>)</span>
+        </div>
+        <div class="input-combo">
+            <input type="range" id="clothing-slider" min="0" max="10000" value="500" step="50" oninput="updateSlider('clothing')">
+            <input type="number" id="clothing-input" value="500" min="0" max="50000" oninput="updateInput('clothing')">
+        </div>
+    </div>
+
+    <!-- Cars/Auto Parts -->
+    <div class="category">
+        <div class="slider-label">
+            <span>Cars/Auto Parts (Tariff: <span id="cars-rate" class="tariff-rate">—%</span>)</span>
+        </div>
+        <div class="input-combo">
+            <input type="range" id="cars-slider" min="0" max="30000" value="2000" step="100" oninput="updateSlider('cars')">
+            <input type="number" id="cars-input" value="2000" min="0" max="100000" oninput="updateInput('cars')">
+        </div>
+    </div>
+
+    <!-- Food -->
+    <div class="category">
+        <div class="slider-label">
+            <span>Food (Tariff: <span id="food-rate" class="tariff-rate">—%</span>)</span>
+        </div>
+        <div class="input-combo">
+            <input type="range" id="food-slider" min="0" max="20000" value="3000" step="100" oninput="updateSlider('food')">
+            <input type="number" id="food-input" value="3000" min="0" max="50000" oninput="updateInput('food')">
+        </div>
+    </div>
+
+    <!-- Energy (Gas, Utilities) -->
+    <div class="category">
+        <div class="slider-label">
+            <span>Energy (Gas, Utilities) (Tariff: <span id="energy-rate" class="tariff-rate">—%</span>)</span>
+        </div>
+        <div class="input-combo">
+            <input type="range" id="energy-slider" min="0" max="10000" value="1500" step="50" oninput="updateSlider('energy')">
+            <input type="number" id="energy-input" value="1500" min="0" max="50000" oninput="updateInput('energy')">
+        </div>
+    </div>
+
+    <button onclick="calculateTariffImpact()">Calculate My Tariff Costs</button>
+    <div id="loading">Loading tariff rates...</div>
+    
+    <div id="result"></div>
 
     <script>
-        // Configuration
-        const API_CONFIG = {
-            usitc: {
-                baseUrl: 'https://hts.usitc.gov/api/',
-                endpoints: {
-                    electronics: 'hts/8528',  // Example HTS code for electronics
-                    clothing: 'hts/6205',     // Example HTS code for clothing
-                    cars: 'hts/8703',         // Example HTS code for vehicles
-                    food: 'hts/0402',         // Example HTS code for dairy
-                    energy: 'hts/2709'        // Example HTS code for petroleum
-                },
-                apiKey: 'YOUR_USITC_API_KEY'  // Register at https://hts.usitc.gov/api/
-            },
-            mockapi: {
-                baseUrl: 'https://mockapi.io/clone/65a5a8b474cf4207b4f0d8a8',
-                endpoints: {
-                    all: '/tariffs'
-                }
-            }
-        };
-
         // Global variable to store tariff rates
         let tariffRates = {};
 
@@ -61,43 +147,29 @@
             await fetchTariffRates();
         });
 
-        // Fetch tariff rates from API
+        // Fetch tariff rates from API (mock for demo)
         async function fetchTariffRates() {
             document.getElementById('loading').style.display = 'block';
-            const statusEl = document.getElementById('api-status');
             
             try {
-                // Try USITC API first
-                const usitcRates = await fetchUsitcRates();
-                if (usitcRates) {
-                    tariffRates = usitcRates;
-                    statusEl.textContent = 'Using real USITC tariff data';
-                    statusEl.className = 'api-success';
-                    statusEl.style.display = 'block';
-                    updateRateDisplays();
-                    return;
-                }
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 800));
                 
-                // Fallback to MockAPI if USITC fails
-                const mockRates = await fetchMockApiRates();
-                if (mockRates) {
-                    tariffRates = mockRates;
-                    statusEl.textContent = 'Using mock tariff data (real USITC API unavailable)';
-                    statusEl.className = 'api-warning';
-                    statusEl.style.display = 'block';
-                    updateRateDisplays();
-                    return;
-                }
-                
-                throw new Error('All API attempts failed');
+                // Mock response (replace with actual API call)
+                const mockRates = {
+                    electronics: 15,
+                    clothing: 12,
+                    cars: 10,
+                    food: 5,
+                    energy: 3
+                };
+
+                tariffRates = mockRates;
+                updateRateDisplays();
                 
             } catch (error) {
                 console.error("API Error:", error);
-                statusEl.textContent = 'Error loading tariff data. Using default values.';
-                statusEl.className = 'api-error';
-                statusEl.style.display = 'block';
-                
-                // Fallback to hardcoded rates
+                alert("Failed to load tariff rates. Using default values.");
                 tariffRates = {
                     electronics: 15,
                     clothing: 12,
@@ -106,62 +178,77 @@
                     energy: 3
                 };
                 updateRateDisplays();
-                
             } finally {
                 document.getElementById('loading').style.display = 'none';
             }
         }
 
-        // Fetch from USITC API
-        async function fetchUsitcRates() {
-            try {
-                // Note: USITC API requires registration and proper CORS setup
-                // This is a simplified example - you'll need to adapt to their actual API
-                const responses = await Promise.all([
-                    fetch(`${API_CONFIG.usitc.baseUrl}${API_CONFIG.usitc.endpoints.electronics}?api_key=${API_CONFIG.usitc.apiKey}`),
-                    fetch(`${API_CONFIG.usitc.baseUrl}${API_CONFIG.usitc.endpoints.clothing}?api_key=${API_CONFIG.usitc.apiKey}`),
-                    fetch(`${API_CONFIG.usitc.baseUrl}${API_CONFIG.usitc.endpoints.cars}?api_key=${API_CONFIG.usitc.apiKey}`),
-                    fetch(`${API_CONFIG.usitc.baseUrl}${API_CONFIG.usitc.endpoints.food}?api_key=${API_CONFIG.usitc.apiKey}`),
-                    fetch(`${API_CONFIG.usitc.baseUrl}${API_CONFIG.usitc.endpoints.energy}?api_key=${API_CONFIG.usitc.apiKey}`)
-                ]);
-                
-                const data = await Promise.all(responses.map(r => r.json()));
-                
-                return {
-                    electronics: data[0].rate || 15,
-                    clothing: data[1].rate || 12,
-                    cars: data[2].rate || 10,
-                    food: data[3].rate || 5,
-                    energy: data[4].rate || 3
-                };
-                
-            } catch (error) {
-                console.warn("USITC API failed, trying fallback");
-                return null;
-            }
+        // Update displayed rates
+        function updateRateDisplays() {
+            document.getElementById("electronics-rate").textContent = tariffRates.electronics + "%";
+            document.getElementById("clothing-rate").textContent = tariffRates.clothing + "%";
+            document.getElementById("cars-rate").textContent = tariffRates.cars + "%";
+            document.getElementById("food-rate").textContent = tariffRates.food + "%";
+            document.getElementById("energy-rate").textContent = tariffRates.energy + "%";
         }
 
-        // Fetch from MockAPI.io fallback
-        async function fetchMockApiRates() {
-            try {
-                const response = await fetch(`${API_CONFIG.mockapi.baseUrl}${API_CONFIG.mockapi.endpoints.all}`);
-                const data = await response.json();
-                
-                return {
-                    electronics: data.electronics || 15,
-                    clothing: data.clothing || 12,
-                    cars: data.cars || 10,
-                    food: data.food || 5,
-                    energy: data.energy || 3
-                };
-                
-            } catch (error) {
-                console.warn("MockAPI failed");
-                return null;
-            }
+        // Sync sliders and inputs
+        function updateSlider(category) {
+            const slider = document.getElementById(`${category}-slider`);
+            const input = document.getElementById(`${category}-input`);
+            input.value = slider.value;
         }
 
-        // ... (keep your existing updateRateDisplays(), updateSlider(), updateInput(), and calculateTariffImpact() functions) ...
+        function updateInput(category) {
+            const slider = document.getElementById(`${category}-slider`);
+            const input = document.getElementById(`${category}-input`);
+            slider.value = input.value;
+        }
+
+        // Main calculation (re-runs on every button press)
+        async function calculateTariffImpact() {
+            const income = parseFloat(document.getElementById("income").value);
+            if (!income || income <= 0) {
+                alert("Please enter a valid income.");
+                return;
+            }
+
+            // Ensure we have the latest rates
+            if (Object.keys(tariffRates).length === 0) {
+                await fetchTariffRates();
+            }
+
+            // Get spending values
+            const categories = ["electronics", "clothing", "cars", "food", "energy"];
+            let totalSpending = 0;
+            let totalTariffCost = 0;
+
+            let breakdown = "";
+            categories.forEach(category => {
+                const spend = parseFloat(document.getElementById(`${category}-input`).value) || 0;
+                const rate = tariffRates[category];
+                const cost = spend * (rate / 100);
+                totalSpending += spend;
+                totalTariffCost += cost;
+                breakdown += `<li>${category.charAt(0).toUpperCase() + category.slice(1)}: $${cost.toFixed(2)} (${rate}% of $${spend})</li>`;
+            });
+
+            const percentOfIncome = (totalTariffCost / income) * 100;
+
+            // Display result
+            document.getElementById("result").innerHTML = `
+                <h3>Your Tariff Impact</h3>
+                <p><strong>Annual Income:</strong> $${income.toLocaleString()}</p>
+                <p><strong>Total Spending on Selected Categories:</strong> $${totalSpending.toLocaleString()}</p>
+                <p><strong>Estimated Annual Tariff Costs:</strong> $${totalTariffCost.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                <p><strong>% of Income Spent on Tariffs:</strong> ${percentOfIncome.toFixed(1)}%</p>
+                
+                <h4>Breakdown:</h4>
+                <ul>${breakdown}</ul>
+                
+                <p><small>Note: Calculations update each time you press "Calculate".</small></p>
+            `;
+        }
     </script>
 </body>
 </html>
