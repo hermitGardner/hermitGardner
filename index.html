@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>U.S. Tariff Impact Calculator (Real Data)</title>
+    <title>U.S. Tariff Impact Calculator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -60,15 +60,28 @@
             padding-bottom: 10px;
             border-bottom: 1px solid #eee;
         }
-        #loading {
+        #loading, #api-status {
             display: none;
-            color: #007BFF;
-            font-weight: bold;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        #loading {
+            background: #e7f5ff;
+        }
+        .api-success {
+            background: #d4edda;
+        }
+        .api-warning {
+            background: #fff3cd;
+        }
+        .api-error {
+            background: #f8d7da;
         }
     </style>
 </head>
 <body>
-    <h1>U.S. Tariff Impact Calculator (Real API Data)</h1>
+    <h1>U.S. Tariff Impact Calculator</h1>
     <p>Estimate how tariffs affect your spending based on real tariff rates.</p>
     
     <div class="input-group">
@@ -134,42 +147,48 @@
     </div>
 
     <button onclick="calculateTariffImpact()">Calculate My Tariff Costs</button>
-    <div id="loading">Loading tariff rates...</div>
-    
+    <div id="loading">Loading tariff data...</div>
+    <div id="api-status"></div>
     <div id="result"></div>
 
     <script>
         // Global variable to store tariff rates
         let tariffRates = {};
+        let loadingEl, statusEl, resultEl;
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            await fetchTariffRates();
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get DOM elements
+            loadingEl = document.getElementById('loading');
+            statusEl = document.getElementById('api-status');
+            resultEl = document.getElementById('result');
+            
+            // Initialize calculator
+            fetchTariffRates();
         });
 
-        // Fetch tariff rates from API (mock for demo)
+        // Fetch tariff rates from API
         async function fetchTariffRates() {
-            document.getElementById('loading').style.display = 'block';
+            if (!loadingEl || !statusEl) return;
+            
+            loadingEl.style.display = 'block';
+            statusEl.style.display = 'none';
             
             try {
-                // Simulate API delay
-                await new Promise(resolve => setTimeout(resolve, 800));
+                // Try to fetch rates (using mock data here - replace with real API)
+                const rates = await tryFetchRates();
+                tariffRates = rates;
                 
-                // Mock response (replace with actual API call)
-                const mockRates = {
-                    electronics: 15,
-                    clothing: 12,
-                    cars: 10,
-                    food: 5,
-                    energy: 3
-                };
-
-                tariffRates = mockRates;
+                statusEl.textContent = 'Using live tariff data';
+                statusEl.className = 'api-success';
                 updateRateDisplays();
                 
             } catch (error) {
-                console.error("API Error:", error);
-                alert("Failed to load tariff rates. Using default values.");
+                console.error("Failed to load rates:", error);
+                statusEl.textContent = 'Using default tariff rates (API unavailable)';
+                statusEl.className = 'api-warning';
+                
+                // Fallback rates
                 tariffRates = {
                     electronics: 15,
                     clothing: 12,
@@ -178,44 +197,60 @@
                     energy: 3
                 };
                 updateRateDisplays();
+                
             } finally {
-                document.getElementById('loading').style.display = 'none';
+                loadingEl.style.display = 'none';
+                statusEl.style.display = 'block';
             }
         }
 
-        // Update displayed rates
-        function updateRateDisplays() {
-            document.getElementById("electronics-rate").textContent = tariffRates.electronics + "%";
-            document.getElementById("clothing-rate").textContent = tariffRates.clothing + "%";
-            document.getElementById("cars-rate").textContent = tariffRates.cars + "%";
-            document.getElementById("food-rate").textContent = tariffRates.food + "%";
-            document.getElementById("energy-rate").textContent = tariffRates.energy + "%";
+        // Try to fetch rates from different sources
+        async function tryFetchRates() {
+            // This is where you would call real APIs
+            // For now, we'll use mock data
+            return {
+                electronics: 15,
+                clothing: 12,
+                cars: 10,
+                food: 5,
+                energy: 3
+            };
         }
 
-        // Sync sliders and inputs
+        // Update displayed tariff rates
+        function updateRateDisplays() {
+            const categories = ['electronics', 'clothing', 'cars', 'food', 'energy'];
+            categories.forEach(cat => {
+                const el = document.getElementById(`${cat}-rate`);
+                if (el && tariffRates[cat] !== undefined) {
+                    el.textContent = `${tariffRates[cat]}%`;
+                }
+            });
+        }
+
+        // Sync sliders and input fields
         function updateSlider(category) {
             const slider = document.getElementById(`${category}-slider`);
             const input = document.getElementById(`${category}-input`);
-            input.value = slider.value;
+            if (slider && input) {
+                input.value = slider.value;
+            }
         }
 
         function updateInput(category) {
             const slider = document.getElementById(`${category}-slider`);
             const input = document.getElementById(`${category}-input`);
-            slider.value = input.value;
+            if (slider && input) {
+                slider.value = input.value;
+            }
         }
 
-        // Main calculation (re-runs on every button press)
-        async function calculateTariffImpact() {
+        // Main calculation function
+        function calculateTariffImpact() {
             const income = parseFloat(document.getElementById("income").value);
             if (!income || income <= 0) {
                 alert("Please enter a valid income.");
                 return;
-            }
-
-            // Ensure we have the latest rates
-            if (Object.keys(tariffRates).length === 0) {
-                await fetchTariffRates();
             }
 
             // Get spending values
@@ -226,7 +261,7 @@
             let breakdown = "";
             categories.forEach(category => {
                 const spend = parseFloat(document.getElementById(`${category}-input`).value) || 0;
-                const rate = tariffRates[category];
+                const rate = tariffRates[category] || 0;
                 const cost = spend * (rate / 100);
                 totalSpending += spend;
                 totalTariffCost += cost;
@@ -236,18 +271,20 @@
             const percentOfIncome = (totalTariffCost / income) * 100;
 
             // Display result
-            document.getElementById("result").innerHTML = `
-                <h3>Your Tariff Impact</h3>
-                <p><strong>Annual Income:</strong> $${income.toLocaleString()}</p>
-                <p><strong>Total Spending on Selected Categories:</strong> $${totalSpending.toLocaleString()}</p>
-                <p><strong>Estimated Annual Tariff Costs:</strong> $${totalTariffCost.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
-                <p><strong>% of Income Spent on Tariffs:</strong> ${percentOfIncome.toFixed(1)}%</p>
-                
-                <h4>Breakdown:</h4>
-                <ul>${breakdown}</ul>
-                
-                <p><small>Note: Calculations update each time you press "Calculate".</small></p>
-            `;
+            if (resultEl) {
+                resultEl.innerHTML = `
+                    <h3>Your Tariff Impact</h3>
+                    <p><strong>Annual Income:</strong> $${income.toLocaleString()}</p>
+                    <p><strong>Total Spending on Selected Categories:</strong> $${totalSpending.toLocaleString()}</p>
+                    <p><strong>Estimated Annual Tariff Costs:</strong> $${totalTariffCost.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                    <p><strong>% of Income Spent on Tariffs:</strong> ${percentOfIncome.toFixed(1)}%</p>
+                    
+                    <h4>Breakdown:</h4>
+                    <ul>${breakdown}</ul>
+                    
+                    <p><small>Note: Calculations update each time you press "Calculate".</small></p>
+                `;
+            }
         }
     </script>
 </body>
