@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>U.S. Tariff Impact Calculator (Real API Data)</title>
+    <style>
+        /* ... (keep your existing styles) ... */
+        #api-status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .api-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .api-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .api-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <!-- ... (keep your existing HTML) ... -->
+    <div id="api-status"></div>
+    <!-- ... (rest of your HTML) ... -->
+
+    <script>
+        // Configuration
+        const API_CONFIG = {
+            usitc: {
+                baseUrl: 'https://hts.usitc.gov/api/',
+                endpoints: {
+                    electronics: 'hts/8528',  // Example HTS code for electronics
+                    clothing: 'hts/6205',     // Example HTS code for clothing
+                    cars: 'hts/8703',         // Example HTS code for vehicles
+                    food: 'hts/0402',         // Example HTS code for dairy
+                    energy: 'hts/2709'        // Example HTS code for petroleum
+                },
+                apiKey: 'YOUR_USITC_API_KEY'  // Register at https://hts.usitc.gov/api/
+            },
+            mockapi: {
+                baseUrl: 'https://mockapi.io/clone/65a5a8b474cf4207b4f0d8a8',
+                endpoints: {
+                    all: '/tariffs'
+                }
+            }
+        };
+
+        // Global variable to store tariff rates
+        let tariffRates = {};
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchTariffRates();
+        });
+
+        // Fetch tariff rates from API
+        async function fetchTariffRates() {
+            document.getElementById('loading').style.display = 'block';
+            const statusEl = document.getElementById('api-status');
+            
+            try {
+                // Try USITC API first
+                const usitcRates = await fetchUsitcRates();
+                if (usitcRates) {
+                    tariffRates = usitcRates;
+                    statusEl.textContent = 'Using real USITC tariff data';
+                    statusEl.className = 'api-success';
+                    statusEl.style.display = 'block';
+                    updateRateDisplays();
+                    return;
+                }
+                
+                // Fallback to MockAPI if USITC fails
+                const mockRates = await fetchMockApiRates();
+                if (mockRates) {
+                    tariffRates = mockRates;
+                    statusEl.textContent = 'Using mock tariff data (real USITC API unavailable)';
+                    statusEl.className = 'api-warning';
+                    statusEl.style.display = 'block';
+                    updateRateDisplays();
+                    return;
+                }
+                
+                throw new Error('All API attempts failed');
+                
+            } catch (error) {
+                console.error("API Error:", error);
+                statusEl.textContent = 'Error loading tariff data. Using default values.';
+                statusEl.className = 'api-error';
+                statusEl.style.display = 'block';
+                
+                // Fallback to hardcoded rates
+                tariffRates = {
+                    electronics: 15,
+                    clothing: 12,
+                    cars: 10,
+                    food: 5,
+                    energy: 3
+                };
+                updateRateDisplays();
+                
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Fetch from USITC API
+        async function fetchUsitcRates() {
+            try {
+                // Note: USITC API requires registration and proper CORS setup
+                // This is a simplified example - you'll need to adapt to their actual API
+                const responses = await Promise.all([
+                    fetch(`${API_CONFIG.usitc.baseUrl}${API_CONFIG.usitc.endpoints.electronics}?api_key=${API_CONFIG.usitc.apiKey}`),
+                    fetch(`${API_CONFIG.usitc.baseUrl}${API_CONFIG.usitc.endpoints.clothing}?api_key=${API_CONFIG.usitc.apiKey}`),
+                    fetch(`${API_CONFIG.usitc.baseUrl}${API_CONFIG.usitc.endpoints.cars}?api_key=${API_CONFIG.usitc.apiKey}`),
+                    fetch(`${API_CONFIG.usitc.baseUrl}${API_CONFIG.usitc.endpoints.food}?api_key=${API_CONFIG.usitc.apiKey}`),
+                    fetch(`${API_CONFIG.usitc.baseUrl}${API_CONFIG.usitc.endpoints.energy}?api_key=${API_CONFIG.usitc.apiKey}`)
+                ]);
+                
+                const data = await Promise.all(responses.map(r => r.json()));
+                
+                return {
+                    electronics: data[0].rate || 15,
+                    clothing: data[1].rate || 12,
+                    cars: data[2].rate || 10,
+                    food: data[3].rate || 5,
+                    energy: data[4].rate || 3
+                };
+                
+            } catch (error) {
+                console.warn("USITC API failed, trying fallback");
+                return null;
+            }
+        }
+
+        // Fetch from MockAPI.io fallback
+        async function fetchMockApiRates() {
+            try {
+                const response = await fetch(`${API_CONFIG.mockapi.baseUrl}${API_CONFIG.mockapi.endpoints.all}`);
+                const data = await response.json();
+                
+                return {
+                    electronics: data.electronics || 15,
+                    clothing: data.clothing || 12,
+                    cars: data.cars || 10,
+                    food: data.food || 5,
+                    energy: data.energy || 3
+                };
+                
+            } catch (error) {
+                console.warn("MockAPI failed");
+                return null;
+            }
+        }
+
+        // ... (keep your existing updateRateDisplays(), updateSlider(), updateInput(), and calculateTariffImpact() functions) ...
+    </script>
+</body>
+</html>
